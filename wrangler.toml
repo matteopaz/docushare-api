@@ -1,0 +1,16 @@
+name = "Document Sharing API"
+type = "javascript"
+zone_id = ""
+account_id = ""
+route = ""
+workers_dev = true
+compatibility_date = "2021-09-01"
+kv_namespaces = [
+    { binding = "USERS", id = "b36a5133b370466eb8e14b9e3ffd63ff" },
+    { binding = "DOCS", id = "c31f101d249a4f3a80f592d4e7e155e2" }
+]
+
+[build]
+command = "npm run build"
+[build.upload]
+format = "service-worker"

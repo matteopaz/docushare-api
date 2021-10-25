@@ -1,0 +1,7 @@
+POST http://127.0.0.1:8787/auth/signup
+
+{
+    "email": "random@gmail.com",
+    "password": "abcdefghijk"
+}
+    
