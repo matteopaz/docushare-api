@@ -1,6 +1,8 @@
 import { AuthorizedRequest } from "./global";
-import { jwtVerify } from 'jose';
-const JWT_SECRET_KEY = new TextEncoder().encode(process.env.JWT_SECRET_KEY);
+const jose = require("node-jose");
+const keystore = jose.JWK.createKeyStore();
+keystore.add({ JWT_SECRET_KEY: process.env.JWT_SECRET_KEY });
+keystore.add({ JWT_SECRET_REFRESH_KEY: process.env.JWT_SECRET_REFRESH_KEY });
 
 function gotoLogin(previousPage: URL) {
   const login = new URL(`https://www.google.com/`); // Placeholder for login page

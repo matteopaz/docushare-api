@@ -1,11 +1,13 @@
 import { Request, Router } from "itty-router";
 import { AuthorizedRequest, User } from "./global";
 import { checkAuth, gotoLogin, validateEmail, generateUniqueHash } from "./utils";
-import { SignJWT } from "jose";
-
+const jose = require("node-jose");
 const router = Router({ base: "/" });
 const authRouter = Router({ base: "/auth/" });
-const JWT_SECRET_KEY = new TextEncoder().encode(process.env.JWT_SECRET_KEY);
+const keystore = jose.JWK.createKeyStore();
+keystore.add({ JWT_SECRET_KEY: process.env.JWT_SECRET_KEY });
+keystore.add({ JWT_SECRET_REFRESH_KEY: process.env.JWT_SECRET_REFRESH_KEY });
+
 class Document {
   __hash: Readonly<string>;
   title: string;
