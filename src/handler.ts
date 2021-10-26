@@ -1,17 +1,29 @@
 import { Request, Router } from "itty-router";
-import { AuthorizedRequest, User, __Document } from "./global";
+import { AuthorizedRequest, User } from "./global";
 import { checkAuth, gotoLogin, validateEmail } from "./utils";
 
 const router = Router({ base: "/" });
 const authRouter = Router({ base: "/auth/" });
 
-class Document implements __Document {
-  constructor(title: string, creator: string, content?: string | Blob) {
+class Document {
+  __hash: Readonly<string>;
+  title: string;
+  owned: Readonly<string>;
+  editors: Array<string>;
+  created: Readonly<Date> = new Date();
+  lastOpened = this.created;
+  viewedBy: Array<string>;
+  content: string;
+  constructor(
+    title: string,
+    creator: string,
+    hash: string,
+    content: string = ""
+  ) {
+    this.__hash = hash;
     this.title = title;
-    this.created = new Date();
     this.editors = [creator];
     this.viewedBy = [creator];
-    this.lastOpened = this.created;
     this.owned = creator;
     this.content = content;
   }
@@ -19,8 +31,8 @@ class Document implements __Document {
 
 authRouter.post("signup", async (request) => {
   // Validating the request
-  const { email, password }: { email: string; password: string } = 
-  await (request.json ? request.json() : Promise.resolve(null));
+  const { email, password }: { email: string; password: string } =
+    await (request.json ? request.json() : Promise.resolve(null));
   if (!validateEmail(email)) {
     return new Response(`Email Invalid or Dangerous`, {
       status: 406,
@@ -39,60 +51,101 @@ authRouter.post("signup", async (request) => {
 });
 
 authRouter.post("login", async (request) => {
-  let { email, password }: { email: string; password: string } = 
-  await (request.json ? request.json() : Promise.resolve(null));
-  if(!validateEmail(email)) {
+  let { email, password }: { email: string; password: string } =
+    await (request.json ? request.json() : Promise.resolve(null));
+  if (!validateEmail(email)) {
     return new Response(`Email Invalid or Dangerous`, {
       status: 406,
     });
   }
   const get_user = async (): Promise<User | null> => {
     const fetched: string | null = await USERS.get(email);
-    if(fetched) {
+    if (fetched) {
       const user: User = JSON.parse(fetched);
       return user;
     } else {
       return null;
     }
-  }
+  };
   const user = await get_user();
-  if(user) {
-    if(user.password === password) {
+  if (user) {
+    if (user.password === password) {
       // Sign a JWT and hand it to the user
     } else {
       return new Response(`Incorrect Password`, { status: 409 });
     }
   } else {
-    return new Response(`User Does Not Exist`, { status: 409 })
+    return new Response(`User Does Not Exist`, { status: 409 });
   }
 });
 
-router.get("view/:hash", (request) => {
-  const { hash } = request.params ?? { hash: null };
-  return new Response(`Viewing Hash #:${hash}`);
+router.get("view/:hash", async (request) => {
+  const hash = request.params ? request.params.user : null;
+  if(!hash) return new Response("How", { status: 400 });
+  const fetched_doc = await DOCS.get(hash);
+  if(!fetched_doc) return new Response('Document Does Not Exist!', { status: 404 });
+  const doc: Document = JSON.parse(fetched_doc);
+  const content: string = doc.content;
+  return new Response(content);
 });
 
 router.post("edit/:hash", checkAuth, (request: AuthorizedRequest) => {
-  if (!request.auth) return gotoLogin(request.url);
+  if (!request.auth) return gotoLogin(new URL(request.url));
   // Sends document, opens a websocket for quicksaving
 });
 
-router.post("new-doc", checkAuth, (request: AuthorizedRequest) => {
-  if(!request.auth) return gotoLogin(request.url);
-  
-})
-
-router.post("user-docs", checkAuth, async (request: AuthorizedRequest) => {
-  if (!request.auth) {
-    return new Response(
-      "Sorry, you need to be logged in to see recent documents"
-    );
-  }
-  const req = await request.json();
-  const user: string | null = (await USERS.get(req.user));
+router.post("new-doc", checkAuth, async (request: AuthorizedRequest) => {
+  if (!request.auth) return gotoLogin(new URL(request.url));
+  const req = request.json ? await request.json() : null;
+  const hash = "a";
+  const document = new Document("Untitled Document", req.user, hash, "")
 });
 
-router.all("auth/*", authRouter.handle)
+router.post(
+  "user-docs/:user",
+  checkAuth,
+  async (request: AuthorizedRequest) => {
+    if (!request.auth) {
+      return new Response(
+        "Sorry, you need to be logged in to see recent documents",
+      {
+        status: 406
+      }
+      );
+    }
+    const user_hash = request.params ? request.params.user : null;
+    const userGetter = async function (): Promise<User | null> {
+      let kv: string | null = null;
+      if (user_hash) {
+        const kv = await USERS.get(user_hash);
+      }
+      if (kv) {
+        return JSON.parse(kv);
+      } else {
+        return null;
+      }
+    }
+    const user = await userGetter();
+    if (user === null)
+      return new Response("User Does Not Exist", { status: 400 });
+    let user_documents = user.opened_documents;
+    user_documents = user_documents.slice(0, 7);
+    let ordered_documents: Array<Document | null> = [];
+    for(let i = 0; i < user_documents.length; i++) {
+      const fetched_doc = await DOCS.get(user_documents[i]);
+      if(fetched_doc) { 
+        const doc: Document = JSON.parse(fetched_doc);
+        ordered_documents.push(doc);
+      } else {
+        console.log("null document");
+        ordered_documents.push(null)
+      }
+    }
+    return new Response(JSON.stringify(ordered_documents));
+  }
+);
+
+router.all("auth/*", authRouter.handle);
 
 router.all("*", async (request) => {
   return new Response(`400 Bad Request`, { status: 400 });
