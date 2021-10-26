@@ -1,6 +1,6 @@
 import { Request, Router } from "itty-router";
 import { AuthorizedRequest, User } from "./global";
-import { checkAuth, gotoLogin, validateEmail } from "./utils";
+import { checkAuth, gotoLogin, validateEmail, generateUniqueHash } from "./utils";
 
 const router = Router({ base: "/" });
 const authRouter = Router({ base: "/auth/" });
@@ -97,8 +97,10 @@ router.post("edit/:hash", checkAuth, (request: AuthorizedRequest) => {
 router.post("new-doc", checkAuth, async (request: AuthorizedRequest) => {
   if (!request.auth) return gotoLogin(new URL(request.url));
   const req = request.json ? await request.json() : null;
-  const hash = "a";
-  const document = new Document("Untitled Document", req.user, hash, "")
+  const hash = generateUniqueHash();
+  const document = new Document("Untitled Document", req.user, hash, "");
+  DOCS.put(hash, JSON.stringify(document));
+  return new Response(JSON.stringify(document));
 });
 
 router.post(

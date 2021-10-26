@@ -34,14 +34,13 @@ function validateEmail(email: string): boolean {
   }
 }
 
-function generateUUID() {
-  // Create a 128 bit hexadecimal UUID
-  return (
-    "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
-      var r = (Math.random() * 16) | 0,
-        v = c == "x" ? r : (r & 0x3) | 0x8;
-      return v.toString(16);
-    })
+function generateUniqueHash() {
+  const chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  let uuid = "";
+  for (let i = 0; i < 15; i++) {
+    uuid += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return uuid;
 }
 
-export { gotoLogin, checkAuth, validateEmail, generateUUID };
+export { gotoLogin, checkAuth, validateEmail, generateUniqueHash };
