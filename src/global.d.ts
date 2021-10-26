@@ -16,6 +16,16 @@ interface User {
   }
 }
 
+interface __Document {
+  title: string,
+  owned: string,
+  editors: Array[string],
+  created: Date,
+  lastOpened: Date,
+  viewedBy: Array[string],
+  content: Blob
+}
+
 /* eslint-disable */
 declare global {
   const USERS: KVNamespace;

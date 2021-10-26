@@ -1,9 +1,21 @@
 import { Request, Router } from "itty-router";
-import { AuthorizedRequest, User } from "./global";
+import { AuthorizedRequest, User, __Document } from "./global";
 import { checkAuth, gotoLogin, validateEmail } from "./utils";
 
 const router = Router({ base: "/" });
 const authRouter = Router({ base: "/auth/" });
+
+class Document implements __Document {
+  constructor(title: string, creator: string, content?: string | Blob) {
+    this.title = title;
+    this.created = new Date();
+    this.editors = [creator];
+    this.viewedBy = [creator];
+    this.lastOpened = this.created;
+    this.owned = creator;
+    this.content = content;
+  }
+}
 
 authRouter.post("signup", async (request) => {
   // Validating the request
@@ -61,23 +73,28 @@ router.get("view/:hash", (request) => {
 });
 
 router.post("edit/:hash", checkAuth, (request: AuthorizedRequest) => {
-  if (!request.auth) return gotoLogin();
+  if (!request.auth) return gotoLogin(request.url);
   // Sends document, opens a websocket for quicksaving
 });
 
-router.post("user-docs", checkAuth, (request: AuthorizedRequest) => {
+router.post("new-doc", checkAuth, (request: AuthorizedRequest) => {
+  if(!request.auth) return gotoLogin(request.url);
+  
+})
+
+router.post("user-docs", checkAuth, async (request: AuthorizedRequest) => {
   if (!request.auth) {
     return new Response(
       "Sorry, you need to be logged in to see recent documents"
     );
   }
-  // Queries DOCS for user's documents
-  // Returns a list of document metadata
+  const req = await request.json();
+  const user: string | null = (await USERS.get(req.user));
 });
 
 router.all("auth/*", authRouter.handle)
 
-router.all("/", async (request) => {
+router.all("*", async (request) => {
   return new Response(`400 Bad Request`, { status: 400 });
 });
 

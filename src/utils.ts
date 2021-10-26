@@ -1,8 +1,15 @@
 import { AuthorizedRequest } from './global';
 
-function gotoLogin() {
-  const page = `https://www.google.com/`; // Placeholder
-  return Response.redirect(page);
+function gotoLogin(previousPage: URL) {
+  const login = new URL(`https://www.google.com/`); // Placeholder for login page
+  const res = new Response('Not Authorized!', {
+    body: {
+      loginAt: login,
+      returnTo: previousPage
+    },
+    status: 401
+  });
+  return res;
 }
 
 async function checkAuth(request: AuthorizedRequest): Promise<void | Response> {
