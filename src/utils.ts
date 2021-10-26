@@ -1,4 +1,6 @@
 import { AuthorizedRequest } from "./global";
+import { jwtVerify } from 'jose';
+const JWT_SECRET_KEY = new TextEncoder().encode(process.env.JWT_SECRET_KEY);
 
 function gotoLogin(previousPage: URL) {
   const login = new URL(`https://www.google.com/`); // Placeholder for login page
@@ -15,12 +17,26 @@ function gotoLogin(previousPage: URL) {
   return res;
 }
 
-async function checkAuth(request: AuthorizedRequest): Promise<void | Response> {
+async function checkAuth(request: AuthorizedRequest): Promise<void | Response> { // Checks if the user is authorized
+  // Checks if the user is authorized
+  // Passes on a boolean and the user if authorized
+  request.auth = false;
   if (!request.json) return;
-  const { jwt } = await request.json();
+  const req: Request | null = await request.json();
+  if(!req) return new Response("Bad Request", {status: 400});
+  const authHeader = req.headers.get("authorization");
+  if(!authHeader) return new Response("No Authorization Header", {status: 400});
+  const token = authHeader.split(" ")[1];
+  // @ts-ignore for secret
+  // jwt.verify(token, process.env.JWT_SECRET_KEY, (err, decoded) => {
+  //   if(err) return new Response("Not Authorized", {status: 403});
+  //   request.auth = true;
+  //   request.user = (decoded ? decoded.user : null);
+  // });
+  const { payload } = await jwtVerify(token, JWT_SECRET_KEY);
+  if(!payload) return new Response("Not Authorized", {status: 403});
   request.auth = true;
-  // Checks if the user is authorized to access this route
-  // If not, returns a 304 to the login page
+  request.user = String(payload.user);
 }
 
 function validateEmail(email: string): boolean {

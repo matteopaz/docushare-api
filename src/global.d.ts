@@ -7,6 +7,7 @@ interface LooseObject {
 
 interface AuthorizedRequest extends Request {
   auth: boolean;
+  user?: string;
 }
 
 interface User {

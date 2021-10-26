@@ -1,4 +1,4 @@
-name = "Document Sharing API"
+name = "docushare-api"
 type = "javascript"
 zone_id = ""
 account_id = ""

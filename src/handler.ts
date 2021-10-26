@@ -1,10 +1,11 @@
 import { Request, Router } from "itty-router";
 import { AuthorizedRequest, User } from "./global";
 import { checkAuth, gotoLogin, validateEmail, generateUniqueHash } from "./utils";
+import { SignJWT } from "jose";
 
 const router = Router({ base: "/" });
 const authRouter = Router({ base: "/auth/" });
-
+const JWT_SECRET_KEY = new TextEncoder().encode(process.env.JWT_SECRET_KEY);
 class Document {
   __hash: Readonly<string>;
   title: string;
@@ -71,6 +72,16 @@ authRouter.post("login", async (request) => {
   if (user) {
     if (user.password === password) {
       // Sign a JWT and hand it to the user
+      const payload = {
+        user: email
+      }
+      // @ts-ignore for secret
+      const key = new Uint8Array(process.env.JWT_SECRET_KEY)
+      const accessToken = new SignJWT(payload)
+      .setExpirationTime('1d')
+      .sign(key);
+      if(!accessToken) throw new Error("Could not sign JWT");
+      return new Response(JSON.stringify({ accessToken }));
     } else {
       return new Response(`Incorrect Password`, { status: 409 });
     }
