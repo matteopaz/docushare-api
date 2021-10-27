@@ -15,7 +15,6 @@
       "@types/service-worker-mock",
       "@types/jest",
       "@types/node",
-      "@types/node-jose"
     ]
   },
   "include": ["src"],

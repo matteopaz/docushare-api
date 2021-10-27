@@ -1,8 +1,7 @@
-import { AuthorizedRequest } from "./global";
-import jose from "node-jose";
-const keystore = jose.JWK.createKeyStore();
-keystore.add({ JWT_SECRET_KEY: process.env.JWT_SECRET_KEY });
-keystore.add({ JWT_SECRET_REFRESH_KEY: process.env.JWT_SECRET_REFRESH_KEY });
+import { AuthorizedRequest, LooseObject } from "./global";
+import jwt from "@tsndr/cloudflare-worker-jwt";
+import { config } from "dotenv";
+config();
 
 function gotoLogin(previousPage: URL) {
   const login = new URL(`https://www.google.com/`); // Placeholder for login page
@@ -24,28 +23,25 @@ async function checkAuth(request: AuthorizedRequest): Promise<void | Response> {
   // Passes on a boolean and the user if authorized
   request.auth = false;
   if (!request.json) return;
+  try {
   const req: Request | null = await request.json();
   if(!req) return new Response("Bad Request", {status: 400});
-  const authHeader = req.headers.get("authorization");
+  console.log(req, "good");
+  } catch(e) {
+    console.log(request)
+  }
+  const authHeader = request.headers.get("Authorization");
   if(!authHeader) return new Response("No Authorization Header", {status: 400});
   const token = authHeader.split(" ")[1];
-  // jwt.verify(token, process.env.JWT_SECRET_KEY, (err, decoded) => {
-  //   if(err) return new Response("Not Authorized", {status: 403});
-  //   request.auth = true;
-  //   request.user = (decoded ? decoded.user : null);
-  // });
-  jose.JWS.createVerify(keystore.get("JWT_SECRET_KEY"))
-    .verify(token)
-    .then(result => {
-      if(!result) return new Response("Not Authorized", {status: 403});
-      request.auth = true;
-      // decode request.payload as a Buffer to an object
-      request.user = result.payload.toString("utf8");
-    })
-    .catch(err => {
-      console.error(err);
-      return new Response("Authorization Error: " + err.message, {status: 403});
-    });
+  // @ts-ignore for secret
+  const isValid = await jwt.verify(token, process.env.JWT_SECRET_KEY);
+  if(isValid){
+    const decoded: LooseObject | null = await jwt.decode(token);
+    request.auth = true;
+    request.user = (decoded ? decoded.user : null);
+  } else {
+    return new Response("Not Authorized", {status: 403});
+  }
 }
 
 function validateEmail(email: string): boolean {

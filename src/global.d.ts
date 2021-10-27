@@ -1,5 +1,6 @@
 /* eslint-disable no-alert, no-console */
-import { Request } from "itty-router";
+import { Request as itty_request } from "itty-router";
+
 
 interface LooseObject {
   [key: string]: any;
@@ -9,6 +10,7 @@ interface AuthorizedRequest extends Request {
   auth: boolean;
   user?: string;
 }
+
 
 interface User {
   password: string;
@@ -31,5 +33,10 @@ interface User {
 declare global {
   const USERS: KVNamespace;
   const DOCS: KVNamespace;
+}
+
+interface Request extends itty_request { 
+  headers: Headers,
+  cf: IncomingRequestCfProperties
 }
 /* eslint-enable */

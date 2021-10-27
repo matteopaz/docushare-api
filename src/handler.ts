@@ -1,13 +1,9 @@
-import { Request, Router } from "itty-router";
-import { AuthorizedRequest, User } from "./global";
+import { Router } from "itty-router";
+import { AuthorizedRequest, User, Request } from "./global";
 import { checkAuth, gotoLogin, validateEmail, generateUniqueHash } from "./utils";
-import jose from "node-jose";
+import jwt from "@tsndr/cloudflare-worker-jwt";
 const router = Router({ base: "/" });
 const authRouter = Router({ base: "/auth/" });
-const keystore = jose.JWK.createKeyStore();
-keystore.add({ JWT_SECRET_KEY: process.env.JWT_SECRET_KEY });
-keystore.add({ JWT_SECRET_REFRESH_KEY: process.env.JWT_SECRET_REFRESH_KEY }); // FIXME if keystore.get is undefined
-
 class Document {
   __hash: Readonly<string>;
   title: string;
@@ -32,7 +28,7 @@ class Document {
   }
 }
 
-authRouter.post("signup", async (request) => {
+authRouter.post("signup", async (request: Request) => {
   // Validating the request
   const { email, password }: { email: string; password: string } =
     await (request.json ? request.json() : Promise.resolve(null));
@@ -53,7 +49,7 @@ authRouter.post("signup", async (request) => {
   return new Response("Account Created", { status: 201 });
 });
 
-authRouter.post("login", async (request) => {
+authRouter.post("login", async (request: Request) => {
   let { email, password }: { email: string; password: string } =
     await (request.json ? request.json() : Promise.resolve(null));
   if (!validateEmail(email)) {
@@ -76,12 +72,12 @@ authRouter.post("login", async (request) => {
       const payload = {
         user: email
       }
-      // @ts-ignore for secret
-      const accessToken = await jose.JWS.createSign(keystore.get("JWT_SECRET_KEY"))
-      .update(JSON.stringify(payload))
-      .final()
-      if(!accessToken) throw new Error("Could not sign JWT");
-      return new Response(JSON.stringify({ accessToken }));
+      if(process.env.JWT_SECRET_KEY) {
+        const accessToken = await jwt.sign(payload, process.env.JWT_SECRET_KEY);
+        return new Response(accessToken);
+      } else {
+        console.error("JWT_SECRET_KEY not defined");
+      }
     } else {
       return new Response(`Incorrect Password`, { status: 409 });
     }
@@ -90,7 +86,7 @@ authRouter.post("login", async (request) => {
   }
 });
 
-router.get("view/:hash", async (request) => {
+router.get("view/:hash", async (request: Request) => {
   const hash = request.params ? request.params.user : null;
   if(!hash) return new Response("How", { status: 400 });
   const fetched_doc = await DOCS.get(hash);
@@ -120,7 +116,7 @@ router.post(
   async (request: AuthorizedRequest) => {
     if (!request.auth) {
       return new Response(
-        "Sorry, you need to be logged in to see recent documents",
+        "Sorry, you need to be logged in to see recent documents.",
       {
         status: 406
       }

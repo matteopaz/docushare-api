@@ -1,4 +1,5 @@
-POST http://127.0.0.1:8787/auth/signup
+POST http://127.0.0.1:8787/new-doc
+Authorization: "bearer asidungiusadg"
 
 {
     "email": "random@gmail.com",
