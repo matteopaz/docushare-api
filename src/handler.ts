@@ -1,12 +1,12 @@
 import { Request, Router } from "itty-router";
 import { AuthorizedRequest, User } from "./global";
 import { checkAuth, gotoLogin, validateEmail, generateUniqueHash } from "./utils";
-const jose = require("node-jose");
+import jose from "node-jose";
 const router = Router({ base: "/" });
 const authRouter = Router({ base: "/auth/" });
 const keystore = jose.JWK.createKeyStore();
 keystore.add({ JWT_SECRET_KEY: process.env.JWT_SECRET_KEY });
-keystore.add({ JWT_SECRET_REFRESH_KEY: process.env.JWT_SECRET_REFRESH_KEY });
+keystore.add({ JWT_SECRET_REFRESH_KEY: process.env.JWT_SECRET_REFRESH_KEY }); // FIXME if keystore.get is undefined
 
 class Document {
   __hash: Readonly<string>;
@@ -72,16 +72,14 @@ authRouter.post("login", async (request) => {
   };
   const user = await get_user();
   if (user) {
-    if (user.password === password) {
-      // Sign a JWT and hand it to the user
+    if (user.password === password) { // Sign a JWT and hand it to the user
       const payload = {
         user: email
       }
       // @ts-ignore for secret
-      const key = new Uint8Array(process.env.JWT_SECRET_KEY)
-      const accessToken = new SignJWT(payload)
-      .setExpirationTime('1d')
-      .sign(key);
+      const accessToken = await jose.JWS.createSign(keystore.get("JWT_SECRET_KEY"))
+      .update(JSON.stringify(payload))
+      .final()
       if(!accessToken) throw new Error("Could not sign JWT");
       return new Response(JSON.stringify({ accessToken }));
     } else {

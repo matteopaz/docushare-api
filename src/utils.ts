@@ -1,5 +1,5 @@
 import { AuthorizedRequest } from "./global";
-const jose = require("node-jose");
+import jose from "node-jose";
 const keystore = jose.JWK.createKeyStore();
 keystore.add({ JWT_SECRET_KEY: process.env.JWT_SECRET_KEY });
 keystore.add({ JWT_SECRET_REFRESH_KEY: process.env.JWT_SECRET_REFRESH_KEY });
@@ -29,16 +29,23 @@ async function checkAuth(request: AuthorizedRequest): Promise<void | Response> {
   const authHeader = req.headers.get("authorization");
   if(!authHeader) return new Response("No Authorization Header", {status: 400});
   const token = authHeader.split(" ")[1];
-  // @ts-ignore for secret
   // jwt.verify(token, process.env.JWT_SECRET_KEY, (err, decoded) => {
   //   if(err) return new Response("Not Authorized", {status: 403});
   //   request.auth = true;
   //   request.user = (decoded ? decoded.user : null);
   // });
-  const { payload } = await jwtVerify(token, JWT_SECRET_KEY);
-  if(!payload) return new Response("Not Authorized", {status: 403});
-  request.auth = true;
-  request.user = String(payload.user);
+  jose.JWS.createVerify(keystore.get("JWT_SECRET_KEY"))
+    .verify(token)
+    .then(result => {
+      if(!result) return new Response("Not Authorized", {status: 403});
+      request.auth = true;
+      // decode request.payload as a Buffer to an object
+      request.user = result.payload.toString("utf8");
+    })
+    .catch(err => {
+      console.error(err);
+      return new Response("Authorization Error: " + err.message, {status: 403});
+    });
 }
 
 function validateEmail(email: string): boolean {
