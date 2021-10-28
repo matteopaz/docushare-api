@@ -1,7 +1,5 @@
-import { AuthorizedRequest, LooseObject } from "./global";
+import { AuthorizedRequest, LooseObject, JWT_SECRET_REFRESH_KEY, JWT_SECRET_KEY } from "./global";
 import jwt from "@tsndr/cloudflare-worker-jwt";
-import { config } from "dotenv";
-config();
 
 function gotoLogin(previousPage: URL) {
   const login = new URL(`https://www.google.com/`); // Placeholder for login page
@@ -33,8 +31,7 @@ async function checkAuth(request: AuthorizedRequest): Promise<void | Response> {
   const authHeader = request.headers.get("Authorization");
   if(!authHeader) return new Response("No Authorization Header", {status: 400});
   const token = authHeader.split(" ")[1];
-  // @ts-ignore for secret
-  const isValid = await jwt.verify(token, process.env.JWT_SECRET_KEY);
+  const isValid = await jwt.verify(token, JWT_SECRET_KEY);
   if(isValid){
     const decoded: LooseObject | null = await jwt.decode(token);
     request.auth = true;

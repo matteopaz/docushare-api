@@ -1,7 +1,6 @@
-import { config } from 'dotenv';
 import { build } from 'esbuild';
 
-config();
+
 build({
     bundle: true,
     platform: "node",

@@ -1,5 +1,5 @@
 import { Router } from "itty-router";
-import { AuthorizedRequest, User, Request } from "./global";
+import { AuthorizedRequest, User, Request, JWT_SECRET_KEY, JWT_SECRET_REFRESH_KEY } from "./global";
 import { checkAuth, gotoLogin, validateEmail, generateUniqueHash } from "./utils";
 import jwt from "@tsndr/cloudflare-worker-jwt";
 const router = Router({ base: "/" });
@@ -72,12 +72,8 @@ authRouter.post("login", async (request: Request) => {
       const payload = {
         user: email
       }
-      if(process.env.JWT_SECRET_KEY) {
-        const accessToken = await jwt.sign(payload, process.env.JWT_SECRET_KEY);
+        const accessToken = await jwt.sign(payload, JWT_SECRET_KEY);
         return new Response(accessToken);
-      } else {
-        console.error("JWT_SECRET_KEY not defined");
-      }
     } else {
       return new Response(`Incorrect Password`, { status: 409 });
     }

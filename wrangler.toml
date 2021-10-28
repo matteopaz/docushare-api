@@ -6,8 +6,8 @@ route = ""
 workers_dev = true
 compatibility_date = "2021-09-01"
 kv_namespaces = [
-    { binding = "USERS", id = "b36a5133b370466eb8e14b9e3ffd63ff" },
-    { binding = "DOCS", id = "c31f101d249a4f3a80f592d4e7e155e2" }
+    { binding = "USERS", id = "bf2090401a9f42bd8067ee06ba07855d" },
+    { binding = "DOCS", id = "99b287205a41478f843e17eff9070386" }
 ]
 
 [build]
