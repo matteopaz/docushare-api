@@ -1,8 +1,8 @@
-POST http://127.0.0.1:8787/new-doc
-Authorization: "bearer asidungiusadg"
+POST http://127.0.0.1:8787/auth/
+Authorization: "Bearer eyJhbGciOiJIUzI1NiJ9.eyJ1c2VyIjoiYUBnbWFpbC5jb20iLCJleHAiOjE2MzU0MTI2MjIsImlhdCI6MTYzNTQwNTQyMn0.niiQx0T2LMZUukqGbBC7v3hKV-vCI2dHeGRmwAzABzE"
 
 {
-    "email": "random@gmail.com",
-    "password": "abcdefghijk"
+    "email": "a@gmail.com",
+    "password": "123"
 }
     

@@ -1,4 +1,5 @@
-import { AuthorizedRequest, LooseObject, JWT_SECRET_REFRESH_KEY, JWT_SECRET_KEY } from "./global";
+import { AuthorizedRequest, LooseObject } from "./global";
+import { JWT_SECRET_KEY, JWT_SECRET_REFRESH_KEY } from ".";
 import jwt from "@tsndr/cloudflare-worker-jwt";
 
 function gotoLogin(previousPage: URL) {
@@ -16,22 +17,16 @@ function gotoLogin(previousPage: URL) {
   return res;
 }
 
-async function checkAuth(request: AuthorizedRequest): Promise<void | Response> { // Checks if the user is authorized
+async function checkAuth(request: AuthorizedRequest): Promise<void | Response> {
   // Checks if the user is authorized
   // Passes on a boolean and the user if authorized
-  request.auth = false;
-  if (!request.json) return;
-  try {
-  const req: Request | null = await request.json();
-  if(!req) return new Response("Bad Request", {status: 400});
-  console.log(req, "good");
-  } catch(e) {
-    console.log(request)
-  }
+  request.auth = false; // set to false by default
   const authHeader = request.headers.get("Authorization");
   if(!authHeader) return new Response("No Authorization Header", {status: 400});
   const token = authHeader.split(" ")[1];
-  const isValid = await jwt.verify(token, JWT_SECRET_KEY);
+  console.log(token, JWT_SECRET_KEY);
+  const isValid = await jwt.verify(token, JWT_SECRET_KEY).catch(e => { console.warn(e); });
+  console.log(isValid);
   if(isValid){
     const decoded: LooseObject | null = await jwt.decode(token);
     request.auth = true;

@@ -1,5 +1,6 @@
 import { Router } from "itty-router";
-import { AuthorizedRequest, User, Request, JWT_SECRET_KEY, JWT_SECRET_REFRESH_KEY } from "./global";
+import { AuthorizedRequest, User, Request } from "./global";
+import { JWT_SECRET_KEY, JWT_SECRET_REFRESH_KEY } from ".";
 import { checkAuth, gotoLogin, validateEmail, generateUniqueHash } from "./utils";
 import jwt from "@tsndr/cloudflare-worker-jwt";
 const router = Router({ base: "/" });
@@ -70,7 +71,7 @@ authRouter.post("login", async (request: Request) => {
   if (user) {
     if (user.password === password) { // Sign a JWT and hand it to the user
       const payload = {
-        user: email
+        user: email,
       }
         const accessToken = await jwt.sign(payload, JWT_SECRET_KEY);
         return new Response(accessToken);
@@ -81,6 +82,16 @@ authRouter.post("login", async (request: Request) => {
     return new Response(`User Does Not Exist`, { status: 409 });
   }
 });
+
+authRouter.post("/", checkAuth, (request: AuthorizedRequest) => {
+  if(request.auth) return new Response("Good, authorized!");
+});
+
+authRouter.post("/tst", async (request: Request) => {
+  const auth = await jwt.sign({ a: "hi" }, "22");
+  const test = await jwt.verify(auth, "22");
+  return new Response(test.toString())
+})
 
 router.get("view/:hash", async (request: Request) => {
   const hash = request.params ? request.params.user : null;

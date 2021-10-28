@@ -3,7 +3,7 @@ import { build } from 'esbuild';
 
 build({
     bundle: true,
-    platform: "node",
+    platform: 'neutral',
     entryPoints: ["src/index.ts"],
     outfile: "dist/worker.js",
     target: "esnext",
