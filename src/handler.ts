@@ -1,7 +1,12 @@
 import { Router } from "itty-router";
 import { AuthorizedRequest, User, Request } from "./global";
 import { JWT_SECRET_KEY, JWT_SECRET_REFRESH_KEY } from ".";
-import { checkAuth, gotoLogin, validateEmail, generateUniqueHash } from "./utils";
+import {
+  checkAuth,
+  gotoLogin,
+  validateEmail,
+  generateUniqueHash,
+} from "./utils";
 import jwt from "@tsndr/cloudflare-worker-jwt";
 const router = Router({ base: "/" });
 const authRouter = Router({ base: "/auth/" });
@@ -69,12 +74,14 @@ authRouter.post("login", async (request: Request) => {
   };
   const user = await get_user();
   if (user) {
-    if (user.password === password) { // Sign a JWT and hand it to the user
+    if (user.password === password) {
+      // Sign a JWT and hand it to the user
       const payload = {
         user: email,
-      }
-        const accessToken = await jwt.sign(payload, JWT_SECRET_KEY);
-        return new Response(accessToken);
+        exp: Date.now() / 1000 + 30 * 60 * 60, // 30 Hour JWT expiry
+      };
+      const accessToken = await jwt.sign(payload, JWT_SECRET_KEY);
+      return new Response(accessToken);
     } else {
       return new Response(`Incorrect Password`, { status: 409 });
     }
@@ -83,21 +90,12 @@ authRouter.post("login", async (request: Request) => {
   }
 });
 
-authRouter.post("/", checkAuth, (request: AuthorizedRequest) => {
-  if(request.auth) return new Response("Good, authorized!");
-});
-
-authRouter.post("/tst", async (request: Request) => {
-  const auth = await jwt.sign({ a: "hi" }, "22");
-  const test = await jwt.verify(auth, "22");
-  return new Response(test.toString())
-})
-
 router.get("view/:hash", async (request: Request) => {
-  const hash = request.params ? request.params.user : null;
-  if(!hash) return new Response("How", { status: 400 });
+  // @ts-ignore
+  const hash = request.params.hash;
   const fetched_doc = await DOCS.get(hash);
-  if(!fetched_doc) return new Response('Document Does Not Exist!', { status: 404 });
+  if (!fetched_doc)
+    return new Response("Document Does Not Exist!", { status: 404 });
   const doc: Document = JSON.parse(fetched_doc);
   const content: string = doc.content;
   return new Response(content);
@@ -112,7 +110,10 @@ router.post("new-doc", checkAuth, async (request: AuthorizedRequest) => {
   if (!request.auth) return gotoLogin(new URL(request.url));
   const req = request.json ? await request.json() : null;
   const hash = generateUniqueHash();
-  const document = new Document("Untitled Document", req.user, hash, "");
+  let content = "";
+  if(req.content) content = req.content;
+  if(!request.user) return new Response("User not identifiable from token");
+  const document = new Document("Untitled Document", request.user, hash, content);
   DOCS.put(hash, JSON.stringify(document));
   return new Response(JSON.stringify(document));
 });
@@ -121,40 +122,32 @@ router.post(
   "user-docs/:user",
   checkAuth,
   async (request: AuthorizedRequest) => {
-    if (!request.auth) {
-      return new Response(
-        "Sorry, you need to be logged in to see recent documents.",
-      {
-        status: 406
-      }
-      );
-    }
-    const user_hash = request.params ? request.params.user : null;
+    let user_hash = (request.user ?? (request.params ? request.params.user : null))
     const userGetter = async function (): Promise<User | null> {
       let kv: string | null = null;
       if (user_hash) {
-        const kv = await USERS.get(user_hash);
+        kv = await USERS.get(user_hash);
       }
       if (kv) {
         return JSON.parse(kv);
       } else {
         return null;
       }
-    }
+    };
     const user = await userGetter();
-    if (user === null)
+    if (!user)
       return new Response("User Does Not Exist", { status: 400 });
     let user_documents = user.opened_documents;
     user_documents = user_documents.slice(0, 7);
     let ordered_documents: Array<Document | null> = [];
-    for(let i = 0; i < user_documents.length; i++) {
+    for (let i = 0; i < user_documents.length; i++) {
       const fetched_doc = await DOCS.get(user_documents[i]);
-      if(fetched_doc) { 
+      if (fetched_doc) {
         const doc: Document = JSON.parse(fetched_doc);
         ordered_documents.push(doc);
       } else {
-        console.log("null document");
-        ordered_documents.push(null)
+        console.log("Document not found or null");
+        ordered_documents.push(null);
       }
     }
     return new Response(JSON.stringify(ordered_documents));

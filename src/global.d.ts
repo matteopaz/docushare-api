@@ -10,7 +10,6 @@ interface AuthorizedRequest extends Request {
   user?: string;
 }
 
-
 interface User {
   password: string;
   documents: string[]; // Hashes of owned docs, most recently created at the top
@@ -34,8 +33,8 @@ declare global {
   const DOCS: KVNamespace;
 }
 
-interface Request extends itty_request { 
-  headers: Headers,
-  cf: IncomingRequestCfProperties
+interface Request extends itty_request {
+  headers: Headers;
+  cf: IncomingRequestCfProperties;
 }
 /* eslint-enable */
