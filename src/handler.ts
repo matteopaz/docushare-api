@@ -44,7 +44,7 @@ authRouter.post("signup", async (request: Request) => {
     });
   }
   if (await USERS.get(email)) {
-    return new Response(`Account Taken`, { status: 409 });
+    return new Response(`Account Taken`, { status: 400 });
   }
   // Creating User
   const userInit = {
@@ -52,7 +52,7 @@ authRouter.post("signup", async (request: Request) => {
     documents: {},
   };
   USERS.put(email, JSON.stringify(userInit));
-  return new Response("Account Created", { status: 201 });
+  return new Response("Account Created", { status: 200 });
 });
 
 authRouter.post("login", async (request: Request) => {
@@ -90,6 +90,14 @@ authRouter.post("login", async (request: Request) => {
   }
 });
 
+authRouter.get("check", checkAuth, (request: AuthorizedRequest) => {
+  if(request.auth) {
+    return new Response("Authorized");
+  } else {
+    return new Response("Not Authorized");
+  }
+})
+
 router.get("view/:hash", async (request: Request) => {
   // @ts-ignore
   const hash = request.params.hash;
@@ -103,6 +111,7 @@ router.get("view/:hash", async (request: Request) => {
 
 router.post("edit/:hash", checkAuth, (request: AuthorizedRequest) => {
   if (!request.auth) return gotoLogin(new URL(request.url));
+  return new Response("Not implemented", { status: 501 });
   // Sends document, opens a websocket for quicksaving
 });
 

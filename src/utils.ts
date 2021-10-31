@@ -10,7 +10,7 @@ function gotoLogin(previousPage: URL) {
     returnTo: ${previousPage}
    }`,
     {
-      statusText: "Not Authorized!",
+      statusText: "Not Authorized",
       status: 401,
     }
   );
