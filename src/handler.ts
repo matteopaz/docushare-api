@@ -3,7 +3,6 @@ import { AuthorizedRequest, User, Request } from "./global";
 import { JWT_SECRET_KEY, JWT_SECRET_REFRESH_KEY } from ".";
 import {
   checkAuth,
-  gotoLogin,
   validateEmail,
   generateUniqueHash,
 } from "./utils";
@@ -102,12 +101,12 @@ router.get("view/:hash", async (request: Request) => {
 });
 
 router.post("edit/:hash", checkAuth, (request: AuthorizedRequest) => {
-  if (!request.auth) return gotoLogin(new URL(request.url));
+  if (!request.auth) return new Response('Not Authorized', { status: 401 });
   // Sends document, opens a websocket for quicksaving
 });
 
 router.post("new-doc", checkAuth, async (request: AuthorizedRequest) => {
-  if (!request.auth) return gotoLogin(new URL(request.url));
+  if (!request.auth) return new Response('Not Authorized', { status: 401 });
   const req = request.json ? await request.json() : null;
   const hash = generateUniqueHash();
   let content = "";
@@ -115,7 +114,7 @@ router.post("new-doc", checkAuth, async (request: AuthorizedRequest) => {
   if(!request.user) return new Response("User not identifiable from token");
   const document = new Document("Untitled Document", request.user, hash, content);
   DOCS.put(hash, JSON.stringify(document));
-  return new Response(JSON.stringify(document));
+  return new Response(JSON.stringify(Document));
 });
 
 router.post(

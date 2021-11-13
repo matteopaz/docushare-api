@@ -2,20 +2,20 @@ import { AuthorizedRequest, LooseObject } from "./global";
 import { JWT_SECRET_KEY, JWT_SECRET_REFRESH_KEY } from ".";
 import jwt from "@tsndr/cloudflare-worker-jwt";
 
-function gotoLogin(previousPage: URL) {
-  const login = new URL(`https://www.google.com/`); // Placeholder for login page
-  const res = new Response(
-    `{ 
-    goTo: ${login},
-    returnTo: ${previousPage}
-   }`,
-    {
-      statusText: "Not Authorized!",
-      status: 401,
-    }
-  );
-  return res;
-}
+// function gotoLogin(previousPage: URL) {
+//   const login = new URL(`https://www.google.com`); // Placeholder for login page
+//   const res = new Response(
+//     JSON.stringify({ 
+//     goTo: login,
+//     returnTo: previousPage
+//    }),
+//     {
+//       statusText: "Not Authorized!",
+//       status: 401,
+//     }
+//   );
+//   return res;
+// }
 
 async function checkAuth(request: AuthorizedRequest): Promise<void | Response> {
   // Checks if the user is authorized
@@ -60,4 +60,4 @@ function generateUniqueHash() {
   return uuid;
 }
 
-export { gotoLogin, checkAuth, validateEmail, generateUniqueHash };
+export { checkAuth, validateEmail, generateUniqueHash };
