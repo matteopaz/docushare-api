@@ -122,14 +122,16 @@ router.post("new-doc", checkAuth, async (request: AuthorizedRequest) => {
   if(!request.user) return new Response("User not identifiable from token");
   const document = new Document("Untitled Document", request.user, hash, content);
   DOCS.put(hash, JSON.stringify(document));
-  return new Response(JSON.stringify(Document));
+  return new Response(JSON.stringify(document));
 });
 
-router.post(
-  "user-docs/:user",
+router.get(
+  "user-docs/:user/:num",
   checkAuth,
   async (request: AuthorizedRequest) => {
+    if (!request.auth) return new Response('Not Authorized', { status: 401 });
     let user_hash = (request.user ?? (request.params ? request.params.user : null))
+    const limit = (request.params ? Number(request.params.limit) : 10);
     const userGetter = async function (): Promise<User | null> {
       let kv: string | null = null;
       if (user_hash) {
@@ -145,13 +147,18 @@ router.post(
     if (!user)
       return new Response("User Does Not Exist", { status: 400 });
     let user_documents = user.opened_documents;
-    user_documents = user_documents.slice(0, 7);
-    let ordered_documents: Array<Document | null> = [];
+    user_documents = user_documents.slice(0, limit);
+    let ordered_documents: Array<{ title: string, hash: string, created: Date } | null> = [];
     for (let i = 0; i < user_documents.length; i++) {
       const fetched_doc = await DOCS.get(user_documents[i]);
       if (fetched_doc) {
         const doc: Document = JSON.parse(fetched_doc);
-        ordered_documents.push(doc);
+        const relevant_information = {
+          title: doc.title,
+          hash: doc.__hash,
+          created: doc.created,
+        }
+        ordered_documents.push(relevant_information);
       } else {
         console.log("Document not found or null");
         ordered_documents.push(null);
