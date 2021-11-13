@@ -110,7 +110,20 @@ router.get("view/:hash", async (request: Request) => {
 
 router.post("edit/:hash", checkAuth, (request: AuthorizedRequest) => {
   if (!request.auth) return new Response('Not Authorized', { status: 401 });
-  // Sends document, opens a websocket for quicksaving
+  // Check for auth, send over document
+});
+
+router.post("save/:hash", checkAuth, async (request: AuthorizedRequest) => {
+  if (!request.auth) return new Response('Not Authorized', { status: 401 });
+  // Check for auth, save document
+  const content = (request.text ? request.text() : Promise.resolve(null));
+  const hash = request.params!.hash;
+  const fetched_doc = await DOCS.get(hash);
+  if (!fetched_doc) {
+    return new Response("Document Does Not Exist!", { status: 404 });
+  }
+  const newdoc = JSON.parse(fetched_doc).content = content;
+  DOCS.put(hash, JSON.stringify(newdoc));
 });
 
 router.post("new-doc", checkAuth, async (request: AuthorizedRequest) => {
