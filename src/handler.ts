@@ -108,22 +108,30 @@ router.get("view/:hash", async (request: Request) => {
   return new Response(content);
 });
 
-router.post("edit/:hash", checkAuth, (request: AuthorizedRequest) => {
+router.get("edit/:hash", checkAuth, async (request: AuthorizedRequest) => {
   if (!request.auth) return new Response('Not Authorized', { status: 401 });
   // Check for auth, send over document
+  const hash = (request.params ? request.params.hash : "Null Placeholder");
+  const fetched_doc = await DOCS.get(hash);
+  console.log({fetched_doc})
+  if (!fetched_doc) {
+    return new Response("Document Does Not Exist!", { status: 404 });
+  }
+  return new Response(fetched_doc);
 });
 
 router.post("save/:hash", checkAuth, async (request: AuthorizedRequest) => {
   if (!request.auth) return new Response('Not Authorized', { status: 401 });
   // Check for auth, save document
   const content = (request.text ? request.text() : Promise.resolve(null));
-  const hash = request.params!.hash;
+  const hash = (request.params ? request.params.hash : "Null Placeholder");
   const fetched_doc = await DOCS.get(hash);
   if (!fetched_doc) {
     return new Response("Document Does Not Exist!", { status: 404 });
   }
   const newdoc = JSON.parse(fetched_doc).content = content;
   DOCS.put(hash, JSON.stringify(newdoc));
+  return new Response('Saved');
 });
 
 router.post("new-doc", checkAuth, async (request: AuthorizedRequest) => {
@@ -132,9 +140,10 @@ router.post("new-doc", checkAuth, async (request: AuthorizedRequest) => {
   const hash = generateUniqueHash();
   let content = "";
   if(req.content) content = req.content;
-  if(!request.user) return new Response("User not identifiable from token");
+  if(!request.user) return new Response("User not identifiable from token"), { status: 401 };
   const document = new Document("Untitled Document", request.user, hash, content);
   DOCS.put(hash, JSON.stringify(document));
+  console.log({hash, document})
   return new Response(JSON.stringify(document));
 });
 
