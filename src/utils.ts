@@ -1,5 +1,4 @@
 import { AuthorizedRequest, LooseObject } from "./global";
-import { JWT_SECRET_KEY, JWT_SECRET_REFRESH_KEY } from ".";
 import jwt from "@tsndr/cloudflare-worker-jwt";
 
 // function gotoLogin(previousPage: URL) {
