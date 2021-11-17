@@ -16,22 +16,10 @@ interface User {
   opened_documents: string[]; // Hashes of viewed docs, most recently viewed at the top
 }
 
-// interface __Document {
-//   title: string,
-//   owned: string,
-//   editors: Array<string>,
-//   created: Date,
-//   lastOpened: Date,
-//   viewedBy: Array<string>,
-//   content: Blob,
-//   constructor(): void
-// }
-
-/* eslint-disable */
 declare global {
   const USERS: KVNamespace;
   const DOCS: KVNamespace;
-  const JWT_SECRET_KEY: string;
+  const JWT_SECRET_KEY: string; // Encrypted secret, defined during runtime by the CF server
   const ENV: "staging" | "dev" | "prod";
 }
 
@@ -39,4 +27,7 @@ interface Request extends itty_request {
   headers: Headers;
   cf: IncomingRequestCfProperties;
 }
-/* eslint-enable */
+
+export const PROD_ORIGIN = "asdf.jet"; // Production URL Origin
+export const STAGING_ORIGIN = ""; // Staging URL Origin
+
