@@ -31,6 +31,8 @@ interface User {
 declare global {
   const USERS: KVNamespace;
   const DOCS: KVNamespace;
+  const JWT_SECRET_KEY: string;
+  const ENV: "staging" | "dev" | "prod";
 }
 
 interface Request extends itty_request {

@@ -1,4 +1,4 @@
-name = "docushare-api"
+name = "docushare-api-dev"
 type = "javascript"
 zone_id = ""
 account_id = ""
@@ -6,11 +6,25 @@ route = ""
 workers_dev = true
 compatibility_date = "2021-09-01"
 kv_namespaces = [
-    { binding = "USERS", id = "bf2090401a9f42bd8067ee06ba07855d" },
-    { binding = "DOCS", id = "99b287205a41478f843e17eff9070386" }
+    { binding = "USERS", id = "3386f9541ff24fd9a1345b270ae4516b" },
+    { binding = "DOCS", id = "884163eb762140359e3778f2a2a9c07d" }
 ]
+vars = { ENV = "dev" }
 
 [build]
 command = "npm run build"
 [build.upload]
 format = "service-worker"
+
+[env.staging]
+name = "docushare-api-staging"
+vars = { ENV = "staging" }
+
+
+[env.production]
+name = "docushare-api"
+kv_namespaces = [
+    { binding = "USERS", id = "111931f112664264ba0f8b33d5090e73" },
+    { binding = "DOCS", id = "387f014947a24be6bde102829932a49b" }
+]
+vars = { ENV = "prod" }

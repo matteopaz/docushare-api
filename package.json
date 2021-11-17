@@ -9,7 +9,7 @@
         "devbuild": "node build_dev.js",
         "build": "tsc --noEmit && node build_hard.js",
         "format": "prettier --write *.{json,js} src/*.{js,ts} src/**/*.{js,ts} test/**/*.{js,ts}",
-        "lint": "tsc --noEmit",
+        "lint": "eslint --max-warnings=0 src/* && prettier --check *.{json,js} src/*.{js,ts} src/**/*.{js,ts} test/**/*.{js,ts} && tsc --noEmit",
         "test": "jest --config jestconfig.json --verbose"
     },
     "author": "author",

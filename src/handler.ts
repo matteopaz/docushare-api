@@ -1,6 +1,5 @@
 import { Router } from "itty-router";
 import { AuthorizedRequest, User, Request } from "./global";
-import { JWT_SECRET_KEY, JWT_SECRET_REFRESH_KEY } from ".";
 import {
   checkAuth,
   validateEmail,
