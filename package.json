@@ -5,7 +5,7 @@
     "main": "dist/worker.js",
     "type": "module",
     "scripts": {
-        "dev": "miniflare --build-watch-path src --kv USERS --kv DOCS --build-command=\"npm run devbuild\" --binding JWT_SECRET_KEY=989htnugre87m880qmjdiu2ry80qyv0eywtq",
+        "dev": "miniflare --build-watch-path src --kv USERS --kv DOCS --build-command=\"npm run devbuild\" --binding JWT_SECRET_KEY=989htnugre87m880qmjdiu2ry80qyv0eywtq --binding ENV=dev",
         "devbuild": "node build_dev.js",
         "build": "tsc --noEmit && node build_hard.js",
         "format": "prettier --write *.{json,js} src/*.{js,ts} src/**/*.{js,ts} test/**/*.{js,ts}",

@@ -37,7 +37,7 @@ export class Document {
 export class CORSResponse extends Response {
   constructor(...props: any) {
     super(...props);
-    if(1) {
+    if(ENV === "prod") {
       this.headers.set("Access-Control-Allow-Origin", PROD_ORIGIN);
     } else if(ENV === "staging") {
       this.headers.set("Access-Control-Allow-Origin", STAGING_ORIGIN);
