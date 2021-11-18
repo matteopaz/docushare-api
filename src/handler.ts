@@ -112,7 +112,7 @@ authRouter.get("check", checkAuth, (request: AuthorizedRequest) => {
   if(request.auth) {
     return new CORSResponse("Authorized");
   } else {
-    return new CORSResponse("Not Authorized");
+    return new CORSResponse("Not Authorized", { status: 401 });
   }
 })
 
