@@ -30,7 +30,7 @@ async function checkAuth(request: AuthorizedRequest): Promise<void | Response> {
   if (isValid) {
     const decoded: LooseObject | null = await jwt.decode(token);
     request.auth = true;
-    request.user = decoded!.user ?? null;
+    request.user = decoded!.user;
   }
 }
 

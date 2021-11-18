@@ -65,9 +65,10 @@ authRouter.post("signup", async (request: Request) => {
     return new CORSResponse(`Account Taken`, { status: 400 });
   }
   // Creating User
-  const userInit = {
+  const userInit: User = {
     password,
-    documents: {},
+    documents: [],
+    opened_documents: []
   };
   await USERS.put(email, JSON.stringify(userInit)); // Await fixes creation issue
   return new CORSResponse("Account Created", { status: 200 });
@@ -138,7 +139,7 @@ router.get("edit/:hash", checkAuth, async (request: AuthorizedRequest) => {
   if (!fetched_doc) {
     return new CORSResponse("Document Does Not Exist!", { status: 404 });
   }
-  const user: User = fetched_user ? JSON.parse(fetched_user): null;
+  const user: User = JSON.parse(fetched_user ?? "null");
   const doc: Document = JSON.parse(fetched_doc);
   user.opened_documents = [hash, ...user.opened_documents];
   await USERS.put(request.user, JSON.stringify(user));
