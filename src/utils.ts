@@ -30,10 +30,8 @@ async function checkAuth(request: AuthorizedRequest): Promise<void | Response> {
   if (isValid) {
     const decoded: LooseObject | null = await jwt.decode(token);
     request.auth = true;
-    request.user = decoded ? decoded.user : null;
-  } // else {
-  //   return new Response("Not Authorized", { status: 403 });
-  // }
+    request.user = decoded!.user ?? null;
+  }
 }
 
 function validateEmail(email: string): boolean {

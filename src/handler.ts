@@ -121,8 +121,7 @@ authRouter.get("check", checkAuth, (request: AuthorizedRequest) => {
 // ROUTER BEGIN ---------
 
 router.get("view/:hash", async (request: Request) => {
-  // @ts-ignore
-  const hash = request.params.hash;
+  const hash = request.params!.hash;
   const fetched_doc = await DOCS.get(hash);
   if (!fetched_doc)
     return new CORSResponse("Document Does Not Exist!", { status: 404 });
@@ -133,26 +132,42 @@ router.get("view/:hash", async (request: Request) => {
 
 router.get("edit/:hash", checkAuth, async (request: AuthorizedRequest) => {
   if (!request.auth) return new CORSResponse('Not Authorized', { status: 401 });
-  // Check for auth, send over document
   const hash = (request.params ? request.params.hash : "Null Placeholder");
-  const fetched_doc = await DOCS.get(hash);
-  console.log({fetched_doc})
+  if(!request.user) request.user = "Null Placeholder";
+  const [fetched_user, fetched_doc] = await Promise.all([ USERS.get(request.user), DOCS.get(hash)]);
   if (!fetched_doc) {
     return new CORSResponse("Document Does Not Exist!", { status: 404 });
+  }
+  const user: User = fetched_user ? JSON.parse(fetched_user): null;
+  const doc: Document = JSON.parse(fetched_doc);
+  user.opened_documents = [hash, ...user.opened_documents];
+  await USERS.put(request.user, JSON.stringify(user));
+  if(!doc.editors.find(str => str === request.user)) {
+    return new CORSResponse('You are not an editor of this document!', { status: 401 });
   }
   return new CORSResponse(fetched_doc);
 });
 
 router.post("save/:hash", checkAuth, async (request: AuthorizedRequest) => {
   if (!request.auth) return new CORSResponse('Not Authorized', { status: 401 });
-  // Check for auth, save document
   const hash = request.params!.hash;
-  const [content, fetched_doc] = await Promise.all([(request.text ? request.text() : Promise.resolve(null)), DOCS.get(hash)])
+  const [body, fetched_doc] = await Promise.all([(request.json ? request.json() : Promise.resolve(null)), DOCS.get(hash)]);
   if (!fetched_doc) {
     return new CORSResponse("Document Does Not Exist!", { status: 404 });
   }
-  let new_doc = JSON.parse(fetched_doc);
-  new_doc.content = content;
+  let new_doc: Document = JSON.parse(fetched_doc);
+  if(!new_doc.editors.find(str => str === request.user)) {
+    return new CORSResponse("You are not an editor of this document!", { status: 401 });
+  }
+  if(body.content) {
+    new_doc.content = body.content;
+  }
+  if(body.title) {
+    new_doc.title = body.title;
+  }
+  if(body.editors) {
+    new_doc.editors = body.editors;
+  }
   await DOCS.put(hash, JSON.stringify(new_doc)); // Await fixes saving issue
   return new CORSResponse('Saved');
 });
