@@ -1,54 +1,10 @@
 import { Router } from "itty-router";
-import {
-  AuthorizedRequest,
-  User,
-  Request,
-  PROD_ORIGIN,
-  STAGING_ORIGIN,
-} from "./global.d";
+import { AuthorizedRequest, Request } from "./global.d";
+import { Document, CORSResponse, User } from "./Declarations";
 import { checkAuth, validateEmail, generateUniqueHash } from "./utils";
 import jwt from "@tsndr/cloudflare-worker-jwt";
 const router = Router({ base: "/" });
 const authRouter = Router({ base: "/auth/" });
-
-/* CLASS DECLARATIONS BEGIN ------- */
-export class Document {
-  __hash: Readonly<string>;
-  title: string;
-  owned: Readonly<string>;
-  editors: Array<string>;
-  created: Readonly<Date>;
-  viewed: number;
-  content: string;
-  constructor(
-    title: string,
-    creator: string,
-    hash: string,
-    content: string = ""
-  ) {
-    this.__hash = hash;
-    this.title = title;
-    this.editors = [creator];
-    this.viewed = 1;
-    this.owned = creator;
-    this.content = content;
-    this.created = new Date();
-  }
-}
-
-export class CORSResponse extends Response {
-  constructor(...props: any) {
-    super(...props);
-    if (ENV === "prod") {
-      this.headers.set("Access-Control-Allow-Origin", PROD_ORIGIN);
-    } else if (ENV === "staging") {
-      this.headers.set("Access-Control-Allow-Origin", STAGING_ORIGIN);
-    } else if (ENV === "dev") {
-      this.headers.set("Access-Control-Allow-Origin", "*");
-    }
-  }
-}
-/* CLASS DECLARATIONS END ------- */
 
 // AUTH ROUTER BEGIN ---------
 authRouter.post("signup", async (request: Request) => {
@@ -71,13 +27,7 @@ authRouter.post("signup", async (request: Request) => {
   if (await USERS.get(email)) {
     return new CORSResponse(`Account Taken`, { status: 400 });
   }
-  // Creating User
-  const userInit: User = {
-    password,
-    documents: [],
-    opened_documents: [],
-  };
-  await USERS.put(email, JSON.stringify(userInit)); // Await fixes creation issue
+  await USERS.put(email, JSON.stringify(new User(email, password))); // Await fixes creation issue
   return new CORSResponse("Account Created", { status: 200 });
 });
 
@@ -156,12 +106,12 @@ router.get("edit/:hash", checkAuth, async (request: AuthorizedRequest) => {
   const user: User = JSON.parse(fetched_user ?? "null");
   const doc: Document = JSON.parse(fetched_doc);
   user.opened_documents.forEach((doc_hash, index) => {
-    if(doc_hash === hash) {
+    if (doc_hash === hash) {
       user.opened_documents.splice(index, 1);
     }
   });
   user.opened_documents = [hash, ...user.opened_documents];
-  if(user.opened_documents.length > 50) {
+  if (user.opened_documents.length > 50) {
     user.opened_documents.pop();
   }
   await USERS.put(request.user, JSON.stringify(user));
@@ -206,8 +156,11 @@ router.post("new-doc", checkAuth, async (request: AuthorizedRequest) => {
   if (!request.auth) return new CORSResponse("Not Authorized", { status: 401 });
   const fetched_user = await USERS.get(request.user ?? "Null Placeholder");
   const user: User = JSON.parse(fetched_user ?? "null");
-  if(user.documents.length >= 50) {
-    return new CORSResponse("You have reached the maximum number of documents!", { status: 405 });
+  if (user.documents.length >= 50) {
+    return new CORSResponse(
+      "You have reached the maximum number of documents!",
+      { status: 405 }
+    );
   }
   const req = request.json ? await request.json() : null;
   const hash = generateUniqueHash();

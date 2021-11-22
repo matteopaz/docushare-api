@@ -1,6 +1,5 @@
 import handleRequest from "./handler";
 import { PROD_ORIGIN, STAGING_ORIGIN } from "./global.d";
-import { request } from "http";
 
 function handleOptions(request: Request) {
   const CORS_HEADERS: { [key: string]: string } = {

@@ -10,12 +10,6 @@ interface AuthorizedRequest extends Request {
   user?: string;
 }
 
-interface User {
-  password: string;
-  documents: string[]; // Hashes of owned docs, most recently created at the top
-  opened_documents: string[]; // Hashes of viewed docs, most recently viewed at the top
-}
-
 declare global {
   const USERS: KVNamespace;
   const DOCS: KVNamespace;

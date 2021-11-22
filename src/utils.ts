@@ -1,35 +1,21 @@
 import { AuthorizedRequest, LooseObject } from "./global";
+import { User, Document, CORSResponse } from "./Declarations";
 import jwt from "@tsndr/cloudflare-worker-jwt";
 
-// function gotoLogin(previousPage: URL) {
-//   const login = new URL(`https://www.google.com`); // Placeholder for login page
-//   const res = new Response(
-//     JSON.stringify({ 
-//     goTo: login,
-//     returnTo: previousPage
-//    }),
-//     {
-//       statusText: "Not Authorized!",
-//       status: 401,
-//     }
-//   );
-//   return res;
-// }
-
-async function checkAuth(request: AuthorizedRequest): Promise<void | Response> {
+async function checkAuth(request: AuthorizedRequest): Promise<void | CORSResponse> {
   // Checks if the user is authorized
   // Passes on a boolean and the user if authorized
   request.auth = false; // set to false by default
   const authHeader = request.headers.get("Authorization");
   if (!authHeader)
-    return new Response("No Authorization Header", { status: 400 });
+    return new CORSResponse("No Authorization Header", { status: 400 });
   const token = authHeader.split(" ")[1];
   let isValid = false;
   try {
     if(!token) throw new Error("No token");
     isValid = await jwt.verify(token, JWT_SECRET_KEY)
   } catch (err) {
-    return new Response("Bad Token", { status: 400 });
+    return new CORSResponse("Bad Token", { status: 400 });
   };
   if (isValid) {
     const decoded: LooseObject | null = await jwt.decode(token);
