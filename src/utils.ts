@@ -24,13 +24,20 @@ async function checkAuth(request: AuthorizedRequest): Promise<void | Response> {
   if (!authHeader)
     return new Response("No Authorization Header", { status: 400 });
   const token = authHeader.split(" ")[1];
-  const isValid = await jwt.verify(token, JWT_SECRET_KEY).catch((e) => {
-    return false;
-  });
+  let isValid = false;
+  try {
+    if(!token) throw new Error("No token");
+    isValid = await jwt.verify(token, JWT_SECRET_KEY)
+  } catch (err) {
+    return new Response("Bad Token", { status: 400 });
+  };
   if (isValid) {
     const decoded: LooseObject | null = await jwt.decode(token);
-    request.auth = true;
     request.user = decoded!.user;
+    const fetched_user = await USERS.get(request.user!);
+    if(fetched_user) {
+      request.auth = true;
+    }
   }
 }
 
