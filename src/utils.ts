@@ -25,7 +25,7 @@ async function checkAuth(request: AuthorizedRequest): Promise<void | Response> {
     return new Response("No Authorization Header", { status: 400 });
   const token = authHeader.split(" ")[1];
   const isValid = await jwt.verify(token, JWT_SECRET_KEY).catch((e) => {
-    console.warn(e);
+    return false;
   });
   if (isValid) {
     const decoded: LooseObject | null = await jwt.decode(token);

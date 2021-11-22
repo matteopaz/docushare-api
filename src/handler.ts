@@ -15,9 +15,8 @@ export class Document {
   title: string;
   owned: Readonly<string>;
   editors: Array<string>;
-  created: Readonly<Date> = new Date();
-  lastOpened = this.created;
-  viewedBy: Array<string>;
+  created: Readonly<Date>;
+  viewed: number;
   content: string;
   constructor(
     title: string,
@@ -28,9 +27,10 @@ export class Document {
     this.__hash = hash;
     this.title = title;
     this.editors = [creator];
-    this.viewedBy = [creator];
+    this.viewed = 1;
     this.owned = creator;
     this.content = content;
+    this.created = new Date();
   }
 }
 
@@ -127,6 +127,8 @@ router.get("view/:hash", async (request: Request) => {
   if (!fetched_doc)
     return new CORSResponse("Document Does Not Exist!", { status: 404 });
   const doc: Document = JSON.parse(fetched_doc);
+  doc.viewed++;
+  await DOCS.put(hash, JSON.stringify(doc));
   const content: string = doc.content;
   return new CORSResponse(content);
 });
