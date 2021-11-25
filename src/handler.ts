@@ -1,5 +1,10 @@
 import { Router } from "itty-router";
-import { AuthorizedRequest, Request } from "./global.d";
+import {
+  Request,
+  AuthorizedRequest,
+  PROD_ORIGIN,
+  STAGING_ORIGIN,
+} from "./global.d";
 import { Document, CORSResponse, User } from "./Declarations";
 import { checkAuth, validateEmail, generateUniqueHash } from "./utils";
 import jwt from "@tsndr/cloudflare-worker-jwt";
@@ -15,27 +20,28 @@ authRouter.post("signup", async (request: Request) => {
       : Promise.resolve({ email: null, password: null }));
   if (!email || !password) {
     return new CORSResponse(
+      request,
       "Please include a valid JSON body with email and password.",
       { status: 400 }
     );
   }
   if (!validateEmail(email)) {
-    return new CORSResponse(`Email Invalid or Dangerous`, {
+    return new CORSResponse(request, `Email Invalid or Dangerous`, {
       status: 406,
     });
   }
   if (await USERS.get(email)) {
-    return new CORSResponse(`Account Taken`, { status: 400 });
+    return new CORSResponse(request, `Username Taken`, { status: 400 });
   }
   await USERS.put(email, JSON.stringify(new User(email, password))); // Await fixes creation issue
-  return new CORSResponse("Account Created", { status: 200 });
+  return new CORSResponse(request, "Account Created", { status: 200 });
 });
 
 authRouter.post("login", async (request: Request) => {
   let { email, password }: { email: string; password: string } =
     await (request.json ? request.json() : Promise.resolve(null));
   if (!validateEmail(email)) {
-    return new CORSResponse(`Email Invalid or Dangerous`, {
+    return new CORSResponse(request, `Email Invalid or Dangerous`, {
       status: 406,
     });
   }
@@ -57,20 +63,41 @@ authRouter.post("login", async (request: Request) => {
         exp: Date.now() / 1000 + 30 * 60 * 60, // 30 Hour JWT expiry
       };
       const accessToken = await jwt.sign(payload, JWT_SECRET_KEY);
-      return new CORSResponse(accessToken);
+      let domain = "";
+      if (ENV === "dev") {
+        let dev_origin = request.headers.get("origin");
+        if (dev_origin) {
+          dev_origin = dev_origin.replace(/^https?:\/\//, "");
+          const split = dev_origin.split(":");
+          dev_origin = split[0];
+        }
+        domain = "Domain=" + dev_origin + ";";
+      } else {
+        domain =
+          ENV === "prod"
+            ? `Domain=${PROD_ORIGIN};`
+            : ENV === "staging"
+            ? `Domain=${STAGING_ORIGIN};`
+            : ""; // Should never happen, just in case
+      }
+      return new CORSResponse(request, "Success", {
+        headers: {
+          "Set-Cookie": `Authentication=Bearer ${accessToken};Max-Age=86400;${domain}Path=/;HttpOnly`,
+        },
+      });
     } else {
-      return new CORSResponse(`Incorrect Password`, { status: 409 });
+      return new CORSResponse(request, `Incorrect Password`, { status: 409 });
     }
   } else {
-    return new CORSResponse(`User Does Not Exist`, { status: 409 });
+    return new CORSResponse(request, `User Does Not Exist`, { status: 409 });
   }
 });
 
 authRouter.get("check", checkAuth, (request: AuthorizedRequest) => {
   if (request.auth) {
-    return new CORSResponse("Authorized");
+    return new CORSResponse(request, "Authorized");
   } else {
-    return new CORSResponse("Not Authorized", { status: 401 });
+    return new CORSResponse(request, "Not Authorized", { status: 401 });
   }
 });
 
@@ -82,18 +109,21 @@ router.get("view/:hash", async (request: Request) => {
   const hash = request.params!.hash;
   const fetched_doc = await DOCS.get(hash);
   if (!fetched_doc)
-    return new CORSResponse("Document Does Not Exist!", { status: 404 });
+    return new CORSResponse(request, "Document Does Not Exist!", {
+      status: 404,
+    });
   const doc: Document = JSON.parse(fetched_doc);
   doc.viewed++;
   await DOCS.put(hash, JSON.stringify(doc));
   const content: string = doc.content;
   const title = doc.title;
   const created = doc.created;
-  return new CORSResponse(JSON.stringify({ title, content, created }));
+  return new CORSResponse(request, JSON.stringify({ title, content, created }));
 });
 
 router.get("edit/:hash", checkAuth, async (request: AuthorizedRequest) => {
-  if (!request.auth) return new CORSResponse("Not Authorized", { status: 401 });
+  if (!request.auth)
+    return new CORSResponse(request, "Not Authorized", { status: 401 });
   const hash = request.params ? request.params.hash : "Null Placeholder";
   if (!request.user) request.user = "Null Placeholder";
   const [fetched_user, fetched_doc] = await Promise.all([
@@ -101,7 +131,9 @@ router.get("edit/:hash", checkAuth, async (request: AuthorizedRequest) => {
     DOCS.get(hash),
   ]);
   if (!fetched_doc) {
-    return new CORSResponse("Document Does Not Exist!", { status: 404 });
+    return new CORSResponse(request, "Document Does Not Exist!", {
+      status: 404,
+    });
   }
   const user: User = JSON.parse(fetched_user ?? "null");
   const doc: Document = JSON.parse(fetched_doc);
@@ -116,28 +148,39 @@ router.get("edit/:hash", checkAuth, async (request: AuthorizedRequest) => {
   }
   await USERS.put(request.user, JSON.stringify(user));
   if (!doc.editors.find((str) => str === request.user)) {
-    return new CORSResponse("You are not an editor of this document!", {
-      status: 401,
-    });
+    return new CORSResponse(
+      request,
+      "You are not an editor of this document!",
+      {
+        status: 401,
+      }
+    );
   }
-  return new CORSResponse(fetched_doc);
+  return new CORSResponse(request, fetched_doc);
 });
 
 router.post("save/:hash", checkAuth, async (request: AuthorizedRequest) => {
-  if (!request.auth) return new CORSResponse("Not Authorized", { status: 401 });
+  if (!request.auth)
+    return new CORSResponse(request, "Not Authorized", { status: 401 });
   const hash = request.params!.hash;
   const [body, fetched_doc] = await Promise.all([
     request.json ? request.json() : Promise.resolve(null),
     DOCS.get(hash),
   ]);
   if (!fetched_doc) {
-    return new CORSResponse("Document Does Not Exist!", { status: 404 });
+    return new CORSResponse(request, "Document Does Not Exist!", {
+      status: 404,
+    });
   }
   let new_doc: Document = JSON.parse(fetched_doc);
   if (!new_doc.editors.find((str) => str === request.user)) {
-    return new CORSResponse("You are not an editor of this document!", {
-      status: 401,
-    });
+    return new CORSResponse(
+      request,
+      "You are not an editor of this document!",
+      {
+        status: 401,
+      }
+    );
   }
   if (body.content) {
     new_doc.content = body.content;
@@ -149,15 +192,17 @@ router.post("save/:hash", checkAuth, async (request: AuthorizedRequest) => {
     new_doc.editors = body.editors;
   }
   await DOCS.put(hash, JSON.stringify(new_doc)); // Await fixes saving issue
-  return new CORSResponse("Saved");
+  return new CORSResponse(request, "Saved");
 });
 
 router.post("new-doc", checkAuth, async (request: AuthorizedRequest) => {
-  if (!request.auth) return new CORSResponse("Not Authorized", { status: 401 });
+  if (!request.auth)
+    return new CORSResponse(request, "Not Authorized", { status: 401 });
   const fetched_user = await USERS.get(request.user ?? "Null Placeholder");
   const user: User = JSON.parse(fetched_user ?? "null");
   if (user.documents.length >= 50) {
     return new CORSResponse(
+      request,
       "You have reached the maximum number of documents!",
       { status: 405 }
     );
@@ -168,7 +213,8 @@ router.post("new-doc", checkAuth, async (request: AuthorizedRequest) => {
   if (req.content) content = req.content;
   if (!request.user)
     return (
-      new CORSResponse("User not identifiable from token"), { status: 401 }
+      new CORSResponse(request, "User not identifiable from token"),
+      { status: 401 }
     );
   const document = new Document(
     "Untitled Document",
@@ -177,11 +223,12 @@ router.post("new-doc", checkAuth, async (request: AuthorizedRequest) => {
     content
   );
   await DOCS.put(hash, JSON.stringify(document)); // Await fixes creation issue
-  return new CORSResponse(JSON.stringify(document));
+  return new CORSResponse(request, JSON.stringify(document));
 });
 
 router.get("user-docs/:num", checkAuth, async (request: AuthorizedRequest) => {
-  if (!request.auth) return new CORSResponse("Not Authorized", { status: 401 });
+  if (!request.auth)
+    return new CORSResponse(request, "Not Authorized", { status: 401 });
   let user_hash = request.user;
   const limit = request.params ? Number(request.params.num) : 10;
   const userGetter = async function (): Promise<User | null> {
@@ -196,7 +243,8 @@ router.get("user-docs/:num", checkAuth, async (request: AuthorizedRequest) => {
     }
   };
   const user = await userGetter();
-  if (!user) return new CORSResponse("User Does Not Exist", { status: 400 });
+  if (!user)
+    return new CORSResponse(request, "User Does Not Exist", { status: 400 });
   let user_documents = user.opened_documents;
   user_documents = user_documents.slice(0, limit);
   let ordered_documents: Array<{
@@ -216,11 +264,10 @@ router.get("user-docs/:num", checkAuth, async (request: AuthorizedRequest) => {
       };
       ordered_documents.push(relevant_information);
     } else {
-      console.log("Document not found or null");
       ordered_documents.push(null);
     }
   }
-  return new CORSResponse(JSON.stringify(ordered_documents));
+  return new CORSResponse(request, JSON.stringify(ordered_documents));
 });
 
 // ROUTER END ---------
@@ -229,8 +276,8 @@ router.get("user-docs/:num", checkAuth, async (request: AuthorizedRequest) => {
 
 router.all("auth/*", authRouter.handle); // Redirects all auth requests to authRouter from parent
 
-router.all("*", async (request) => {
-  return new CORSResponse(`400 Bad Request`, { status: 400 }); // Catches all other requests
+router.all("*", async (request: Request) => {
+  return new CORSResponse(request, `400 Bad Request`, { status: 400 }); // Catches all other requests
 });
 
 export default {

@@ -5,6 +5,11 @@ interface LooseObject {
   [key: string]: any;
 }
 
+interface Request extends itty_request  {
+  headers: Headers;
+  cf: IncomingRequestCfProperties;
+}
+
 interface AuthorizedRequest extends Request {
   auth: boolean;
   user?: string;
@@ -17,11 +22,6 @@ declare global {
   const ENV: "staging" | "dev" | "prod";
 }
 
-interface Request extends itty_request {
-  headers: Headers;
-  cf: IncomingRequestCfProperties;
-}
-
-export const PROD_ORIGIN = "asdf.jet"; // Production URL Origin
-export const STAGING_ORIGIN = ""; // Staging URL Origin
+export const PROD_ORIGIN = "production.site"; // Production URL Origin
+export const STAGING_ORIGIN = "staging.site"; // Staging URL Origin
 

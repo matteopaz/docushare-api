@@ -1,14 +1,16 @@
-import { PROD_ORIGIN, STAGING_ORIGIN } from './global.d';
+import { AuthorizedRequest, PROD_ORIGIN, STAGING_ORIGIN, Request } from './global.d';
 
 class CORSResponse extends Response {
-  constructor(...props: any) {
+  constructor(request: Request | AuthorizedRequest, ...props: any) {
     super(...props);
+    this.headers.set("Access-Control-Allow-Credentials", "true");
     if (ENV === "prod") {
       this.headers.set("Access-Control-Allow-Origin", PROD_ORIGIN);
     } else if (ENV === "staging") {
       this.headers.set("Access-Control-Allow-Origin", STAGING_ORIGIN);
     } else if (ENV === "dev") {
-      this.headers.set("Access-Control-Allow-Origin", "*");
+      const origin = request.headers.get("Origin");
+      this.headers.set("Access-Control-Allow-Origin", origin ?? "*");
     }
   }
 }

@@ -2,26 +2,49 @@ import { AuthorizedRequest, LooseObject } from "./global";
 import { User, Document, CORSResponse } from "./Declarations";
 import jwt from "@tsndr/cloudflare-worker-jwt";
 
-async function checkAuth(request: AuthorizedRequest): Promise<void | CORSResponse> {
+function parseCookies(req: Request | AuthorizedRequest) {
+  // Parse req.headers.cookie into an object
+  let cookies: LooseObject = {};
+  const cookieHeader = req.headers.get("cookie");
+  if (cookieHeader) {
+    cookieHeader.split(";").forEach((cookie) => {
+      const parts = cookie.split("=");
+      cookies[parts[0].trim()] = (parts[1] || "").trim();
+    });
+  }
+  return cookies;
+}
+
+async function checkAuth(
+  request: AuthorizedRequest
+): Promise<void | CORSResponse> {
   // Checks if the user is authorized
   // Passes on a boolean and the user if authorized
   request.auth = false; // set to false by default
-  const authHeader = request.headers.get("Authorization");
-  if (!authHeader)
-    return new CORSResponse("No Authorization Header", { status: 400 });
-  const token = authHeader.split(" ")[1];
+  const cookies = parseCookies(request);
+  if (!cookies) {
+    return new CORSResponse(request, "No Cookies Present", { status: 400 });
+  }
+  const auth = cookies["Authentication"];
+  if (!auth) {
+    return new CORSResponse(request, "No Authentication Cookie", {
+      status: 400,
+    });
+  }
+  const token = auth.split(" ")[1];
   let isValid = false;
   try {
-    if(!token) throw new Error("No token");
-    isValid = await jwt.verify(token, JWT_SECRET_KEY)
+    if (!token) throw new Error("No token");
+    isValid = await jwt.verify(token, JWT_SECRET_KEY);
   } catch (err) {
-    return new CORSResponse("Bad Token", { status: 400 });
-  };
+    isValid = false;
+    return new CORSResponse(request, "Missing or bad token", { status: 400 });
+  }
   if (isValid) {
     const decoded: LooseObject | null = await jwt.decode(token);
     request.user = decoded!.user;
     const fetched_user = await USERS.get(request.user!);
-    if(fetched_user) {
+    if (fetched_user) {
       request.auth = true;
     }
   }
