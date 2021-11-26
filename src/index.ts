@@ -3,7 +3,7 @@ import { PROD_ORIGIN, STAGING_ORIGIN } from "./global.d";
 
 function handleOptions(request: Request) {
   const CORS_HEADERS: { [key: string]: string } = {
-    "Access-Control-Allow-Methods": "GET, POST, HEAD, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, POST, HEAD, OPTIONS, DELETE",
     "Access-Control-Max-Age": "86400",
     "Access-Control-Allow-Credentials": "true"
   };

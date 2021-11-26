@@ -82,7 +82,7 @@ authRouter.post("login", async (request: Request) => {
       }
       return new CORSResponse(request, user.email, {
         headers: {
-          "Set-Cookie": `Authentication=Bearer ${accessToken};Max-Age=86400;${domain}Path=/;`,
+          "Set-Cookie": `Authentication=Bearer ${accessToken};Max-Age=86400;${domain}Path=/;HttpOnly`,
         },
       });
     } else {
@@ -226,6 +226,23 @@ router.post("new-doc", checkAuth, async (request: AuthorizedRequest) => {
   return new CORSResponse(request, JSON.stringify(document));
 });
 
+router.delete("delete-doc/:hash", checkAuth, async (request: AuthorizedRequest) => {
+  if(!request.auth || !request.user) return new CORSResponse(request, "Not Authorized", {status: 401});
+  if(!request.params) return new CORSResponse(request, "No hash provided", {status: 400});
+  const hash = request.params.hash;
+  const fetched_doc = await DOCS.get(hash);
+  if(!fetched_doc) return new CORSResponse(request, "Document does not exist", {status: 404});
+  const doc: Document = JSON.parse(fetched_doc);
+  if(request.user !== doc.owned) return new CORSResponse(request, "You are not the owner", {status: 401});
+  const fetched_user = await USERS.get(request.user) as string;
+  const user: User = JSON.parse(fetched_user);
+  user.documents = user.documents.filter((str) => str !== hash);
+  user.opened_documents = user.documents.filter((str) => str !== hash);
+  await USERS.put(request.user, JSON.stringify(user));
+  await DOCS.delete(hash);
+  return new CORSResponse(request, "Deleted");
+})
+
 router.get("user-docs/:num", checkAuth, async (request: AuthorizedRequest) => {
   if (!request.auth)
     return new CORSResponse(request, "Not Authorized", { status: 401 });
@@ -247,6 +264,7 @@ router.get("user-docs/:num", checkAuth, async (request: AuthorizedRequest) => {
     return new CORSResponse(request, "User Does Not Exist", { status: 400 });
   let user_documents = user.opened_documents;
   user_documents = user_documents.slice(0, limit);
+  let updateUser = false;
   let ordered_documents: Array<{
     title: string;
     hash: string;
@@ -264,9 +282,12 @@ router.get("user-docs/:num", checkAuth, async (request: AuthorizedRequest) => {
       };
       ordered_documents.push(relevant_information);
     } else {
-      ordered_documents.push(null);
+      updateUser = true; // Updates the users opened documents and removes the deleted or null document
+      user_documents.splice(i, 1);
     }
   }
+  user.opened_documents = user_documents;
+  if(updateUser) await USERS.put(user_hash!, JSON.stringify(user));
   return new CORSResponse(request, JSON.stringify(ordered_documents));
 });
 
