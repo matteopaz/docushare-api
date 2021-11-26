@@ -80,9 +80,9 @@ authRouter.post("login", async (request: Request) => {
             ? `Domain=${STAGING_ORIGIN};`
             : ""; // Should never happen, just in case
       }
-      return new CORSResponse(request, "Success", {
+      return new CORSResponse(request, user.email, {
         headers: {
-          "Set-Cookie": `Authentication=Bearer ${accessToken};Max-Age=86400;${domain}Path=/;HttpOnly`,
+          "Set-Cookie": `Authentication=Bearer ${accessToken};Max-Age=86400;${domain}Path=/;`,
         },
       });
     } else {
@@ -95,7 +95,7 @@ authRouter.post("login", async (request: Request) => {
 
 authRouter.get("check", checkAuth, (request: AuthorizedRequest) => {
   if (request.auth) {
-    return new CORSResponse(request, "Authorized");
+    return new CORSResponse(request, request.user);
   } else {
     return new CORSResponse(request, "Not Authorized", { status: 401 });
   }
