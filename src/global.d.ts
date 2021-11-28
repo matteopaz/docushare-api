@@ -22,6 +22,6 @@ declare global {
   const ENV: "staging" | "dev" | "prod";
 }
 
-export const PROD_ORIGIN = "production.site"; // Production URL Origin
-export const STAGING_ORIGIN = "staging.site"; // Staging URL Origin
+export const PROD_ORIGIN = "https://docushare-lite.matteodev.workers.dev"; // Production URL Origin
+export const STAGING_ORIGIN = "https://docushare-lite.matteodev.workers.dev"; // Staging URL Origin
 
