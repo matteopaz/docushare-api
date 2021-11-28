@@ -19,7 +19,10 @@ format = "service-worker"
 [env.staging]
 name = "docushare-api-staging"
 vars = { ENV = "staging" }
-
+kv_namespaces = [
+    { binding = "USERS", id = "ad548ba072754862808a2189484f9ef9" },
+    { binding = "DOCS", id = "f55be1b60e204892903f0da19aa1d332" }
+]
 
 [env.production]
 name = "docushare-api"
