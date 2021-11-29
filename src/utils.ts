@@ -21,17 +21,11 @@ async function checkAuth(
   // Checks if the user is authorized
   // Passes on a boolean and the user if authorized
   request.auth = false; // set to false by default
-  const cookies = parseCookies(request);
-  if (!cookies) {
-    return new CORSResponse(request, "No Cookies Present", { status: 400 });
+  const authHeader = request.headers.get("Authentication");
+  if (!authHeader) {
+    return new CORSResponse(request, "No Auth Header", { status: 400 });
   }
-  const auth = cookies["Authentication"];
-  if (!auth) {
-    return new CORSResponse(request, "No Authentication Cookie", {
-      status: 400,
-    });
-  }
-  const token = auth.split(" ")[1];
+  const token = authHeader.split(" ")[1];
   let isValid = false;
   try {
     if (!token) throw new Error("No token");
@@ -47,6 +41,7 @@ async function checkAuth(
     if (fetched_user) {
       request.auth = true;
     }
+  } else {
   }
 }
 

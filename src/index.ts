@@ -1,6 +1,6 @@
 import handleRequest from "./handler";
 import { CORSResponse } from "./Declarations";
-import { PROD_ORIGIN, STAGING_ORIGIN } from "./global.d";
+import { FRONTEND_PROD_ORIGIN, FRONTEND_STAGING_ORIGIN } from "./global.d";
 
 function handleOptions(request: Request) {
   const CORS_HEADERS: { [key: string]: string } = {
@@ -9,18 +9,18 @@ function handleOptions(request: Request) {
     "Access-Control-Allow-Credentials": "true",
   };
   if (ENV === "prod") {
-    CORS_HEADERS["Access-Control-Allow-Origin"] = PROD_ORIGIN;
+    CORS_HEADERS["Access-Control-Allow-Origin"] = FRONTEND_PROD_ORIGIN;
     CORS_HEADERS["Access-Control-Allow-Headers"] =
-      "content-type, cookie, credentials";
+      "content-type, Authentication";
   } else if (ENV === "staging") {
-    CORS_HEADERS["Access-Control-Allow-Origin"] = STAGING_ORIGIN;
+    CORS_HEADERS["Access-Control-Allow-Origin"] = FRONTEND_STAGING_ORIGIN;
     CORS_HEADERS["Access-Control-Allow-Headers"] =
-      "content-type, cookie, credentials";
+      "content-type, Authentication";
   } else if (ENV === "dev") {
     const origin = request.headers.get("Origin");
     CORS_HEADERS["Access-Control-Allow-Origin"] = origin ?? "*";
     CORS_HEADERS["Access-Control-Allow-Headers"] =
-      "content-type, cookie, credentials";
+      "content-type, Authentication";
   }
   const res = new Response();
   for (let header in CORS_HEADERS) {
@@ -35,6 +35,7 @@ addEventListener("fetch", async (event) => {
   } else {
     event.respondWith(
       handleRequest.fetch(event.request).catch((err: Error) => {
+        throw err;
         return new CORSResponse(event.request, "Server Error", { status: 500 });
       })
     );

@@ -2,8 +2,10 @@ import { Router } from "itty-router";
 import {
   Request,
   AuthorizedRequest,
-  PROD_ORIGIN,
-  STAGING_ORIGIN,
+  FRONTEND_PROD_ORIGIN,
+  FRONTEND_STAGING_ORIGIN,
+  API_PROD_ORIGIN,
+  API_STAGING_ORIGIN,
 } from "./global.d";
 import { Document, CORSResponse, User } from "./Declarations";
 import { checkAuth, validateEmail, generateUniqueHash } from "./utils";
@@ -68,21 +70,18 @@ authRouter.post("login", async (request: Request) => {
         let dev_origin = request.headers.get("origin");
         if (dev_origin) {
           dev_origin = dev_origin.replace(/^https?:\/\//, "");
-          const split = dev_origin.split(":");
-          dev_origin = split[0];
+          // const split = dev_origin.split(":");
+          // dev_origin = split[0];
         }
         domain = "Domain=" + dev_origin + ";";
       } else {
-        domain =
-          ENV === "prod"
-            ? `Domain=${PROD_ORIGIN};`
-            : ENV === "staging"
-            ? `Domain=${STAGING_ORIGIN};`
-            : ""; // Should never happen, just in case
+        let envOriginUrl = new URL((ENV === "prod" ? FRONTEND_PROD_ORIGIN : FRONTEND_STAGING_ORIGIN));
+        const split = envOriginUrl.host.split(".");
+        domain = "Domain=" + split[split.length - 3] + "." +split[split.length - 2] + "." + split[split.length - 1] + ";";
       }
       return new CORSResponse(request, user.email, {
         headers: {
-          "Set-Cookie": `Authentication=Bearer ${accessToken};Max-Age=86400;${domain}Path=/;HttpOnly`,
+          "Set-Cookie": `Authentication=Bearer ${accessToken};Max-Age=86400;${domain};Path=/;HttpOnly`, // Storing the JWT in a httpOnly cookie
         },
       });
     } else {
