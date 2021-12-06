@@ -290,6 +290,10 @@ router.get("user-docs/:num", checkAuth, async (request: AuthorizedRequest) => {
   return new CORSResponse(request, JSON.stringify(ordered_documents));
 });
 
+router.get("ping", (request: AuthorizedRequest) => {
+  return new CORSResponse(request, "pong", { status: 200 });
+})
+
 // ROUTER END ---------
 
 // Server management
