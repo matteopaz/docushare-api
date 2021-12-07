@@ -75,9 +75,18 @@ authRouter.post("login", async (request: Request) => {
         }
         domain = "Domain=" + dev_origin + ";";
       } else {
-        let envOriginUrl = new URL((ENV === "prod" ? FRONTEND_PROD_ORIGIN : FRONTEND_STAGING_ORIGIN));
+        let envOriginUrl = new URL(
+          ENV === "prod" ? FRONTEND_PROD_ORIGIN : FRONTEND_STAGING_ORIGIN
+        );
         const split = envOriginUrl.host.split(".");
-        domain = "Domain=" + split[split.length - 3] + "." +split[split.length - 2] + "." + split[split.length - 1] + ";";
+        domain =
+          "Domain=" +
+          split[split.length - 3] +
+          "." +
+          split[split.length - 2] +
+          "." +
+          split[split.length - 1] +
+          ";";
       }
       return new CORSResponse(request, user.email, {
         headers: {
@@ -162,7 +171,7 @@ router.post("save/:hash", checkAuth, async (request: AuthorizedRequest) => {
   if (!request.auth)
     return new CORSResponse(request, "Not Authorized", { status: 401 });
   const hash = request.params!.hash;
-  const [body, fetched_doc] = await Promise.all([
+  const [body, fetched_doc]: [Document, string | null] = await Promise.all([
     request.json ? request.json() : Promise.resolve(null),
     DOCS.get(hash),
   ]);
@@ -182,13 +191,28 @@ router.post("save/:hash", checkAuth, async (request: AuthorizedRequest) => {
     );
   }
   if (body.content) {
-    new_doc.content = body.content;
+    // 75000 is the max length of a document, cut off extra characters
+    if (body.content.length > 75000) {
+      new_doc.content = body.content;
+    } else {
+      new_doc.content = body.content.slice(0, 75000);
+    }
   }
   if (body.title) {
-    new_doc.title = body.title;
+    // Max title length is 75, cut off extra characters
+    if (body.title.length <= 75) {
+      new_doc.title = body.title;
+    } else {
+      new_doc.title = body.title.slice(0, 75);
+    }
   }
   if (body.editors) {
-    new_doc.editors = body.editors;
+    if (body.editors.length > 100) {
+      new_doc.editors = body.editors;
+    } else {
+      // Cut off the excess editors
+      new_doc.editors = body.editors.slice(0, 100);
+    }
   }
   await DOCS.put(hash, JSON.stringify(new_doc)); // Await fixes saving issue
   return new CORSResponse(request, "Saved");
@@ -209,7 +233,7 @@ router.post("new-doc", checkAuth, async (request: AuthorizedRequest) => {
   const req = request.json ? await request.json() : null;
   const hash = generateUniqueHash();
   let content = "";
-  if (req.content) content = req.content;
+  if (req.content && req.content.length < 75000) content = req.content; // Max length of content is 75000 chars
   if (!request.user)
     return (
       new CORSResponse(request, "User not identifiable from token"),
@@ -225,22 +249,34 @@ router.post("new-doc", checkAuth, async (request: AuthorizedRequest) => {
   return new CORSResponse(request, JSON.stringify(document));
 });
 
-router.delete("delete-doc/:hash", checkAuth, async (request: AuthorizedRequest) => {
-  if(!request.auth || !request.user) return new CORSResponse(request, "Not Authorized", {status: 401});
-  if(!request.params) return new CORSResponse(request, "No hash provided", {status: 400});
-  const hash = request.params.hash;
-  const fetched_doc = await DOCS.get(hash);
-  if(!fetched_doc) return new CORSResponse(request, "Document does not exist", {status: 404});
-  const doc: Document = JSON.parse(fetched_doc);
-  if(request.user !== doc.owned) return new CORSResponse(request, "You are not the owner", {status: 401});
-  const fetched_user = await USERS.get(request.user) as string;
-  const user: User = JSON.parse(fetched_user);
-  user.documents = user.documents.filter((str) => str !== hash);
-  user.opened_documents = user.documents.filter((str) => str !== hash);
-  await USERS.put(request.user, JSON.stringify(user));
-  await DOCS.delete(hash);
-  return new CORSResponse(request, "Deleted");
-})
+router.delete(
+  "delete-doc/:hash",
+  checkAuth,
+  async (request: AuthorizedRequest) => {
+    if (!request.auth || !request.user)
+      return new CORSResponse(request, "Not Authorized", { status: 401 });
+    if (!request.params)
+      return new CORSResponse(request, "No hash provided", { status: 400 });
+    const hash = request.params.hash;
+    const fetched_doc = await DOCS.get(hash);
+    if (!fetched_doc)
+      return new CORSResponse(request, "Document does not exist", {
+        status: 404,
+      });
+    const doc: Document = JSON.parse(fetched_doc);
+    if (request.user !== doc.owned)
+      return new CORSResponse(request, "You are not the owner", {
+        status: 401,
+      });
+    const fetched_user = (await USERS.get(request.user)) as string;
+    const user: User = JSON.parse(fetched_user);
+    user.documents = user.documents.filter((str) => str !== hash);
+    user.opened_documents = user.documents.filter((str) => str !== hash);
+    await USERS.put(request.user, JSON.stringify(user));
+    await DOCS.delete(hash);
+    return new CORSResponse(request, "Deleted");
+  }
+);
 
 router.get("user-docs/:num", checkAuth, async (request: AuthorizedRequest) => {
   if (!request.auth)
@@ -286,13 +322,9 @@ router.get("user-docs/:num", checkAuth, async (request: AuthorizedRequest) => {
     }
   }
   user.opened_documents = user_documents;
-  if(updateUser) await USERS.put(user_hash!, JSON.stringify(user));
+  if (updateUser) await USERS.put(user_hash!, JSON.stringify(user));
   return new CORSResponse(request, JSON.stringify(ordered_documents));
 });
-
-router.get("ping", (request: AuthorizedRequest) => {
-  return new CORSResponse(request, "pong", { status: 200 });
-})
 
 // ROUTER END ---------
 
