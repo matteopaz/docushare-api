@@ -88,7 +88,7 @@ authRouter.post("login", async (request: Request) => {
           split[split.length - 1] +
           ";";
       }
-      return new CORSResponse(request, user.email, {
+      return new CORSResponse(request, accessToken, {
         headers: {
           "Set-Cookie": `Authentication=Bearer ${accessToken};Max-Age=86400;${domain};Path=/;HttpOnly`, // Storing the JWT in a httpOnly cookie
         },
