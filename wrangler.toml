@@ -27,7 +27,7 @@ kv_namespaces = [
 [env.production]
 name = "docushare-api"
 workers_dev = false
-route = "docushare-api.matteopaz.me/*"
+route = "docushare.matteopaz.me/api/*"
 zone_id = "f0751e95ee874a4ca5479cd279b7b12b"
 kv_namespaces = [
     { binding = "USERS", id = "111931f112664264ba0f8b33d5090e73" },
