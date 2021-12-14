@@ -333,6 +333,7 @@ router.get("user-docs/:num", checkAuth, async (request: AuthorizedRequest) => {
 router.all("auth/*", authRouter.handle); // Redirects all auth requests to authRouter from parent
 
 router.all("*", async (request: Request) => {
+  console.log("Endpoint not found, route:", request.url);
   return new CORSResponse(request, `400 Bad Request`, { status: 400 }); // Catches all other requests
 });
 
