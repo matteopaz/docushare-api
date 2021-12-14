@@ -6,12 +6,13 @@ import {
   FRONTEND_STAGING_ORIGIN,
   API_PROD_ORIGIN,
   API_STAGING_ORIGIN,
+  API_PATH_BASE,
 } from "./global.d";
 import { Document, CORSResponse, User } from "./Declarations";
 import { checkAuth, validateEmail, generateUniqueHash } from "./utils";
 import jwt from "@tsndr/cloudflare-worker-jwt";
-const router = Router({ base: "/" });
-const authRouter = Router({ base: "/auth/" });
+const router = Router({ base: API_PATH_BASE + "/" });
+const authRouter = Router({ base: API_PATH_BASE + "/auth/" });
 
 // AUTH ROUTER BEGIN ---------
 authRouter.post("signup", async (request: Request) => {
