@@ -76,18 +76,11 @@ authRouter.post("login", async (request: Request) => {
         }
         domain = "Domain=" + dev_origin + ";";
       } else {
-        let envOriginUrl = new URL(
-          ENV === "prod" ? FRONTEND_PROD_ORIGIN : FRONTEND_STAGING_ORIGIN
-        );
-        const split = envOriginUrl.host.split(".");
-        domain =
-          "Domain=" +
-          split[split.length - 3] +
-          "." +
-          split[split.length - 2] +
-          "." +
-          split[split.length - 1] +
-          ";";
+        if(ENV === "prod") {
+          domain = "Domain=" + FRONTEND_PROD_ORIGIN + ";";
+        } else {
+          domain = "Domain=" + FRONTEND_STAGING_ORIGIN + ";";
+        }
       }
       return new CORSResponse(request, accessToken, {
         headers: {
