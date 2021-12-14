@@ -77,9 +77,11 @@ authRouter.post("login", async (request: Request) => {
         domain = "Domain=" + dev_origin + ";";
       } else {
         if(ENV === "prod") {
-          domain = "Domain=" + FRONTEND_PROD_ORIGIN + ";";
+          const splitByScheme = FRONTEND_PROD_ORIGIN.split("//");
+          domain = "Domain=" + splitByScheme[splitByScheme.length - 1] + ";";
         } else {
-          domain = "Domain=" + FRONTEND_STAGING_ORIGIN + ";";
+          const splitByScheme = FRONTEND_STAGING_ORIGIN.split("//");
+          domain = "Domain=" + splitByScheme[splitByScheme.length - 1] + ";";
         }
       }
       return new CORSResponse(request, accessToken, {
