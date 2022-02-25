@@ -35,7 +35,7 @@ addEventListener("fetch", async (event) => {
   } else {
     event.respondWith(
       handleRequest.fetch(event.request).catch((err: Error) => {
-        throw err;
+        console.error(err);
         return new CORSResponse(event.request, "Server Error", { status: 500 });
       })
     );
